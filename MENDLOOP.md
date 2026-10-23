@@ -88,5 +88,5 @@ Install with nested dependencies from the pinned commit, point `.mcp.json` at `s
 and set `CONTEXT_MODE_DIR`, `CLAUDE_PROJECT_DIR` and `CONTEXT_MODE_PROJECT_DIR` inside the home folder:
 
 ```bash
-npm install --prefix <home>/ctx --install-strategy=nested --save-exact git+https://github.com/claudeagent-mendloop/context-mode.git#<sha>
+npm install --prefix <home>/ctx --install-strategy=nested --save-exact git+https://github.com/Mendloop-Co/context-mode.git#<sha>
 ```
