@@ -30,6 +30,10 @@ byte-identical to upstream's).
 
 ## Tests
 
+**How to test:** run every context-mode code path, its test suites included, with `HOME` and `CLAUDE_CONFIG_DIR` pointed at a
+throwaway temp folder and `CONTEXT_MODE_DIR` unset: `env -u CONTEXT_MODE_DIR HOME=$(mktemp -d) CLAUDE_CONFIG_DIR=$(mktemp -d) npx vitest run`.
+Upstream's own suites write into `~/.claude` when run against the real `HOME` (they re-created the traces we had just removed).
+
 `npx vitest run` with a clean environment (`env -u CONTEXT_MODE_DIR`): **207 files, 4678 tests passed, 28 skipped.**
 Changed upstream tests: the tool counts (11 to 10) and lists in `tests/core/server.test.ts`, `tests/plugins/openclaw.test.ts`,
 `tests/opencode-plugin.test.ts`, `tests/adapters/antigravity.test.ts`; the `ctx_insight` description tests removed; the
