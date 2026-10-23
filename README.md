@@ -1,3 +1,5 @@
+> **This is Mendloop'"'"'s modified fork of [mksglu/context-mode](https://github.com/mksglu/context-mode)** (upstream v1.0.169, commit `fc0fda3d`), made so it runs inside our agent sessions without touching Claude Code'"'"'s own files, without any outbound call, and without the vendor'"'"'s hosted Insight. Changes: self-heal only for plugin installs (`CONTEXT_MODE_NO_SELF_HEAL=1` is a hard off), logs under `CONTEXT_MODE_DIR`, update check off unless `CONTEXT_MODE_UPDATE_CHECK=1`, hosted forwarder and `ctx_insight` removed. Full list and reasons: [MENDLOOP.md](MENDLOOP.md). Licence: Elastic License 2.0, unchanged (see `LICENSE`).
+
 # Context Mode
 
 **The other half of the context problem.**
