@@ -38,9 +38,16 @@ function resolveClaudeConfigDir() {
   return resolve(homedir(), ".claude");
 }
 
+// Mendloop fork: logs go under CONTEXT_MODE_DIR/logs when it is set (inlined: this wrapper stays dependency-free;
+// same rule as hooks/self-heal-policy.mjs logDir).
+function logDir(configDir) {
+  const root = process.env.CONTEXT_MODE_DIR && process.env.CONTEXT_MODE_DIR.trim();
+  return root ? `${root.replace(/[\\/]+$/, "")}/logs` : resolve(configDir, "context-mode");
+}
+
 function logError(err) {
   try {
-    const dir = resolve(resolveClaudeConfigDir(), "context-mode");
+    const dir = logDir(resolveClaudeConfigDir());
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     const line = `[${new Date().toISOString()}] pid=${process.pid} ${err?.stack || err?.message || String(err)}\n`;
     appendFileSync(resolve(dir, "hook-errors.log"), line);

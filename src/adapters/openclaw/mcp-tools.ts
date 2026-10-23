@@ -221,16 +221,6 @@ export const OPENCLAW_TOOL_DEFS: readonly OpenClawToolDef[] = [
     },
     execute: cliRedirect("ctx_purge"),
   },
-  {
-    name: "ctx_insight",
-    description: "Open the hosted context-mode Insight dashboard (context-mode.com/insight) in the browser.",
-    parameters: {
-      type: "object",
-      properties: {},
-      additionalProperties: true,
-    },
-    execute: cliRedirect("ctx_insight"),
-  },
 ];
 
 /** Stable list of tool names — used by tests and manifest validation. */

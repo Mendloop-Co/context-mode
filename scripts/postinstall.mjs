@@ -87,6 +87,9 @@ const pkgRoot = resolve(__dirname, "..");
  * does). Both signals must agree.
  */
 function isGlobalInstall() {
+  // Mendloop fork: never write Claude Code's files from npm install; only inside a plugin cache path.
+  // (inlined: this script is copied on its own into install layouts; same rule as hooks/self-heal-policy.mjs)
+  if (process.env.CONTEXT_MODE_NO_SELF_HEAL === "1" || !/[\/\\]plugins[\/\\]cache[\/\\]/.test(pkgRoot)) return false;
   if (process.env.npm_config_global !== "true") return false;
   // Walk up a few levels looking for .git — contributors always have one.
   let dir = pkgRoot;

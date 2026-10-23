@@ -24,6 +24,7 @@ import { execSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { selfHealAllowed, selfHealSkipped } from "./self-heal-policy.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -65,6 +66,8 @@ function hasModernSqlite() {
 }
 
 export async function ensureDeps() {
+  // Mendloop fork: no npm install or native rebuild from a hook unless this is a Claude Code plugin install.
+  if (!selfHealAllowed(root)) { selfHealSkipped(); return; }
   // Bun ships bun:sqlite and never needs better-sqlite3
   if (typeof globalThis.Bun !== "undefined") return;
   for (const pkg of NATIVE_DEPS) {

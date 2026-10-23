@@ -28,7 +28,8 @@ await runHook(async () => {
   // Resolve absolute path for imports
   const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
   const { loadSessionDB, loadSnapshot, loadProjectAttribution } = createSessionLoaders(HOOK_DIR);
-  const DEBUG_LOG = join(resolveConfigDir(), "context-mode", "precompact-debug.log");
+  const { logDir } = await import("./self-heal-policy.mjs");
+  const DEBUG_LOG = join(logDir(resolveConfigDir()), "precompact-debug.log");
 
   try {
     const raw = await readStdin();

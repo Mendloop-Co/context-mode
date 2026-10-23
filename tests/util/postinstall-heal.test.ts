@@ -52,7 +52,8 @@ function stagePostinstallPackage(): {
   // Keep the fake package several levels below tmpdir. isGlobalInstall() only
   // scans four ancestors; this prevents ambient markers like /tmp/.git from
   // making the staged global-install fixture look like a contributor checkout.
-  const root = join(base, "npm", "lib", "node_modules", "context-mode");
+  // Mendloop fork: Claude's files are repaired only for a plugin-cache install path.
+  const root = join(base, "npm", "lib", "plugins", "cache", "context-mode", "context-mode", "1.0.169");
   const scriptsDir = join(root, "scripts");
   const hooksDir = join(root, "hooks");
   mkdirSync(scriptsDir, { recursive: true });

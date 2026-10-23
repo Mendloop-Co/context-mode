@@ -603,7 +603,7 @@ describe("OpenClawPlugin", () => {
     });
   });
 
-  // ── SLICE OClaw-1: registerTool exposes 11 ctx_* MCP tools ────────
+  // ── SLICE OClaw-1: registerTool exposes 10 ctx_* MCP tools ────────
   describe("registerTool (SLICE OClaw-1 — sidecar MCP)", () => {
     const EXPECTED_NAMES = [
       "ctx_execute",
@@ -616,10 +616,9 @@ describe("OpenClawPlugin", () => {
       "ctx_doctor",
       "ctx_upgrade",
       "ctx_purge",
-      "ctx_insight",
     ] as const;
 
-    it("registers all 11 ctx_* tools via api.registerTool", async () => {
+    it("registers all 10 ctx_* tools via api.registerTool", async () => {
       const mock = await createTestPlugin(join(tempDir, "register-tool"));
       const names = mock.tools.map((t) => t.name);
       for (const expected of EXPECTED_NAMES) {

@@ -19,6 +19,7 @@
  */
 
 import { runHook } from "./run-hook.mjs";
+import { selfHealAllowed } from "./self-heal-policy.mjs";
 
 await runHook(async () => {
   const { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } = await import("node:fs");
@@ -53,7 +54,7 @@ await runHook(async () => {
 
     // Only self-heal inside plugin cache dirs — skip in dev/CI environments
     const isInPluginCache = myRoot.includes("/plugins/cache/") || myRoot.includes("\\plugins\\cache\\");
-    if (myVersion !== "unknown" && isInPluginCache && !existsSync(marker)) {
+    if (myVersion !== "unknown" && isInPluginCache && selfHealAllowed(myRoot) && !existsSync(marker)) {
       // 1. If dir name doesn't match version (e.g. "0.7.0" but code is "0.9.12"),
       //    create correct dir, copy files, update registry + hooks
       const correctDir = resolve(cacheParent, myVersion);

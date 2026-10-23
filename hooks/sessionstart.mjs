@@ -129,6 +129,8 @@ await runHook(async () => {
   // the plugin's own manifest — no env-var dependency, immune to PATH bugs.
   // Best-effort, never blocks session start.
   try {
+    const { selfHealAllowed: _heal } = await import("./self-heal-policy.mjs");
+    if (!_heal(process.env.CLAUDE_PLUGIN_ROOT ?? "")) throw new Error("self-heal off"); // Mendloop fork: plugin installs only
     const { selfHealShellSnapshots } = await import("./cache-heal-utils.mjs");
     const { resolve } = await import("node:path");
     const { resolveConfigDir } = await import("./session-helpers.mjs");
@@ -389,7 +391,7 @@ await runHook(async () => {
       // mid-flight (#644).
       try {
         const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
-        if (pluginRoot) {
+        if (pluginRoot && (await import("./self-heal-policy.mjs")).selfHealAllowed(pluginRoot)) {
           const cacheParentMatch = pluginRoot.match(/^(.*[\\/]plugins[\\/]cache[\\/][^\\/]+[\\/][^\\/]+[\\/])/);
           if (cacheParentMatch) {
             const cacheParent = cacheParentMatch[1];
@@ -448,8 +450,11 @@ await runHook(async () => {
       const { appendFileSync } = await import("node:fs");
       const { join: pjoin } = await import("node:path");
       const { resolveConfigDir: _resolve } = await import("./session-helpers.mjs");
+      const { logDir: _logDir } = await import("./self-heal-policy.mjs");
+      const { mkdirSync: _mk } = await import("node:fs");
+      _mk(_logDir(_resolve()), { recursive: true });
       appendFileSync(
-        pjoin(_resolve(), "context-mode", "sessionstart-debug.log"),
+        pjoin(_logDir(_resolve()), "sessionstart-debug.log"),
         `[${new Date().toISOString()}] ${err?.message || err}\n${err?.stack || ""}\n`,
       );
     } catch { /* ignore logging failure */ }

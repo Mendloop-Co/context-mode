@@ -5339,7 +5339,6 @@ describe("tool description style contract (#683 ADR-0002)", () => {
   const EXEMPT_FROM_WHEN = new Set([
     "ctx_stats",
     "ctx_doctor",
-    "ctx_insight",
     "ctx_upgrade",
   ]);
 
@@ -5353,9 +5352,9 @@ describe("tool description style contract (#683 ADR-0002)", () => {
   // meets the canonical contract enforced below.
   const EXEMPT_FROM_FORBIDDEN_TOKENS = new Set<string>([]);
 
-  test("at least 11 ctx_* tools are registered", () => {
+  test("at least 10 ctx_* tools are registered", () => {
     // Sanity check that the extractor found the corpus.
-    expect(tools.length).toBeGreaterThanOrEqual(11);
+    expect(tools.length).toBeGreaterThanOrEqual(10);
   });
 
   // Forbidden tokens per ADR-0002. Each pattern is documented inline so
@@ -5931,11 +5930,10 @@ describe("tool description source form contract (#683 PR follow-up)", () => {
     "ctx_stats",
     "ctx_doctor",
     "ctx_upgrade",
-    "ctx_insight",
   ]);
 
-  test("at least 11 ctx_* tools surfaced for source-form contract", () => {
-    expect(blocks.length).toBeGreaterThanOrEqual(11);
+  test("at least 10 ctx_* tools surfaced for source-form contract", () => {
+    expect(blocks.length).toBeGreaterThanOrEqual(10);
   });
 
   for (const block of blocks) {
@@ -6360,24 +6358,6 @@ describe("getStatsFilePath: sanitize CLAUDE_SESSION_ID before path.join", () => 
 // Cross-platform audit follow-up — schema/observability fixes for #696 #697
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe("ctx_insight schema description (issue #697)", () => {
-  const serverSrc = readFileSync(
-    resolve(__dirname, "../../src/server.ts"),
-    "utf-8",
-  );
-
-  test("description states it is a dashboard launcher, not a Q&A engine", () => {
-    expect(serverSrc).toMatch(/ctx_insight[\s\S]{0,2000}dashboard launcher/);
-  });
-
-  test("description redirects natural-language queries to ctx_search", () => {
-    expect(serverSrc).toMatch(/ctx_insight[\s\S]{0,2000}use ctx_search/);
-  });
-
-  test("description preserves the original analytics framing", () => {
-    expect(serverSrc).toMatch(/Opens the context-mode Insight dashboard/);
-  });
-});
 
 describe("ctx_batch_execute query_scope (issue #696)", () => {
   const serverSrc = readFileSync(
@@ -6683,7 +6663,6 @@ describe("ctx_* MCP tool annotations (#846)", () => {
     ctx_doctor:          { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
     ctx_upgrade:         { readOnlyHint: false, destructiveHint: false, idempotentHint: true,  openWorldHint: false },
     ctx_purge:           { readOnlyHint: false, destructiveHint: true,  idempotentHint: true,  openWorldHint: false },
-    ctx_insight:         { readOnlyHint: false, destructiveHint: false, idempotentHint: true,  openWorldHint: true  },
   };
   const tools = REGISTERED_CTX_TOOLS as Array<{ name: string; config: { annotations?: Hints } }>;
   const find = (name: string) => tools.find((t) => t.name === name);
@@ -6710,7 +6689,7 @@ describe("ctx_* MCP tool annotations (#846)", () => {
   test("never blanket-marks executing/mutating/destructive tools read-only", () => {
     for (const name of [
       "ctx_execute", "ctx_execute_file", "ctx_batch_execute", "ctx_index",
-      "ctx_fetch_and_index", "ctx_purge", "ctx_upgrade", "ctx_insight",
+      "ctx_fetch_and_index", "ctx_purge", "ctx_upgrade",
     ]) {
       expect(find(name)!.config.annotations!.readOnlyHint).toBe(false);
     }

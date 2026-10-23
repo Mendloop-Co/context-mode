@@ -4,6 +4,7 @@ import { existsSync, chmodSync, readFileSync, writeFileSync, readdirSync, symlin
 import { dirname, resolve, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+import { selfHealAllowed, selfHealSkipped } from "./hooks/self-heal-policy.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const originalCwd = process.cwd();
@@ -49,6 +50,12 @@ if (!process.env.CLAUDE_PROJECT_DIR && safeOriginalCwd) {
 if (!process.env.CONTEXT_MODE_PROJECT_DIR && safeOriginalCwd) {
   process.env.CONTEXT_MODE_PROJECT_DIR = safeOriginalCwd;
 }
+
+// Mendloop fork (MENDLOOP.md): every self-heal layer below rewrites Claude Code's own files (plugin registry,
+// settings.json, global hooks, plugin cache) or runs npm. They run ONLY when this package is installed as a Claude
+// Code plugin (its path is under <config dir>/plugins/cache), and never with CONTEXT_MODE_NO_SELF_HEAL=1.
+const HEAL = selfHealAllowed(__dirname);
+if (!HEAL) selfHealSkipped();
 
 // Routing instructions file auto-write DISABLED for all platforms (#158, #164).
 // Env vars like CLAUDE_SESSION_ID may not be set at MCP startup time, making
@@ -140,7 +147,7 @@ if (typeof globalThis.Bun === "undefined" && process.platform === "linux") {
 const cacheMatch = __dirname.match(
   /^(.*[\/\\]plugins[\/\\]cache[\/\\][^\/\\]+[\/\\][^\/\\]+[\/\\])([^\/\\]+)$/,
 );
-if (cacheMatch) {
+if (cacheMatch && HEAL) {
   try {
     const cacheParent = cacheMatch[1];
     const myVersion = cacheMatch[2];
@@ -237,7 +244,7 @@ if (cacheMatch) {
 // Logic is shared verbatim with scripts/postinstall.mjs (single source of
 // truth) so users who fix themselves via `npm install -g context-mode`
 // follow the exact same code path. Best-effort, never blocks MCP boot.
-try {
+if (HEAL) try {
   const { healInstalledPlugins, healSettingsEnabledPlugins, healPluginJsonMcpServers, sweepStaleMcpJson } =
     await import("./scripts/heal-installed-plugins.mjs");
   const pluginKey = "context-mode@context-mode";
@@ -301,7 +308,7 @@ try {
 //   - On Windows there is no shebang; we fall back to "<execPath>" "<scriptPath>".
 //   - On every boot we self-heal stale "/opt/homebrew/Cellar/node/<ver>/..." paths
 //     left behind by older versions of this code.
-try {
+if (HEAL) try {
   const { buildHookCommand, selfHealCacheHealHook, ensureShebangAndExecBit } =
     await import("./hooks/cache-heal-utils.mjs");
 
@@ -438,7 +445,7 @@ try{
 // Skip under vitest: server.test.ts spawns this script from the repo root,
 // and a mutated .claude-plugin/plugin.json poisons sibling tests that read
 // the file (cli.test.ts). VITEST is inherited by spawned subprocesses.
-if (!process.env.VITEST) {
+if (HEAL && !process.env.VITEST) {
   try {
     const { normalizeHooksOnStartup } = await import("./hooks/normalize-hooks.mjs");
     // #738: probe for Bun ≥1.0 and pass the resolved path so the static
@@ -483,7 +490,7 @@ import "./hooks/ensure-deps.mjs";
 // install completes, the subprocess's own `require.resolve("turndown")`
 // failure surfaces a typed error to the caller — same posture as any
 // other missing-runtime-dep situation in that code path.
-{
+if (HEAL) {
   const NPM_INSTALL_BG_PKGS = ["turndown", "turndown-plugin-gfm", "@mixmark-io/domino"];
   const IS_WIN32 = process.platform === "win32";
   const NPM_BIN = IS_WIN32 ? "npm.cmd" : "npm";
@@ -538,7 +545,7 @@ import "./hooks/ensure-deps.mjs";
 }
 
 // Self-heal: create CLI shim if cli.bundle.mjs is missing (marketplace installs)
-if (!existsSync(resolve(__dirname, "cli.bundle.mjs")) && existsSync(resolve(__dirname, "build", "cli.js"))) {
+if (!existsSync(resolve(__dirname, "cli.bundle.mjs")) && existsSync(resolve(__dirname, "build", "cli.js")) && HEAL) {
   const shimPath = resolve(__dirname, "cli.bundle.mjs");
   writeFileSync(shimPath, '#!/usr/bin/env node\nawait import("./build/cli.js");\n');
   if (process.platform !== "win32") chmodSync(shimPath, 0o755);
@@ -550,7 +557,7 @@ if (!existsSync(resolve(__dirname, "cli.bundle.mjs")) && existsSync(resolve(__di
 // the integrity check below remains the authoritative gate that decides
 // whether boot proceeds. See hooks/heal-partial-install.mjs for the
 // failure-mode description and module contract.
-if (!process.env.VITEST) {
+if (HEAL && !process.env.VITEST) {
   try {
     const { healPartialInstallFromMarketplace } = await import(
       "./hooks/heal-partial-install.mjs"
@@ -602,12 +609,12 @@ if (existsSync(resolve(__dirname, "server.bundle.mjs"))) {
   await import("./server.bundle.mjs");
 } else {
   // Dev or npm install — full build
-  if (!existsSync(resolve(__dirname, "node_modules"))) {
+  if (HEAL && !existsSync(resolve(__dirname, "node_modules"))) {
     try {
       execSync("npm install --silent", { cwd: __dirname, stdio: "pipe", timeout: 60000 });
     } catch { /* best effort */ }
   }
-  if (!existsSync(resolve(__dirname, "build", "server.js"))) {
+  if (HEAL && !existsSync(resolve(__dirname, "build", "server.js"))) {
     try {
       execSync("npx tsc --silent", { cwd: __dirname, stdio: "pipe", timeout: 30000 });
     } catch { /* best effort */ }

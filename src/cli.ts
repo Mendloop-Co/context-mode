@@ -19,6 +19,7 @@ import color from "picocolors";
 import { execFileSync, execSync, execFile as nodeExecFile, type ExecSyncOptions } from "node:child_process";
 import { readFileSync, writeFileSync, cpSync, accessSync, existsSync, readdirSync, rmSync, closeSync, openSync, chmodSync, mkdirSync, lstatSync, realpathSync, statSync, constants } from "node:fs";
 import { request as httpsRequest } from "node:https";
+import { selfHealAllowed, updateCheckEnabled } from "./util/self-heal-policy.js";
 import { resolve, dirname, join, sep, basename, isAbsolute } from "node:path";
 import { tmpdir, devNull, homedir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -250,7 +251,8 @@ if (args[0] === "--help" || args[0] === "-h" || args[0] === "help") {
 } else if (args[0] === "hook") {
   hookDispatch(args[1], args[2]);
 } else if (args[0] === "insight") {
-  insight();
+  console.error("context-mode insight is removed in the Mendloop fork (MENDLOOP.md).");
+  process.exit(1);
 } else if (args[0] === "statusline") {
   // Status line implementation lives in bin/statusline.mjs to keep it
   // dependency-free and fast. Forward stdin and exit with its result.
@@ -382,6 +384,8 @@ function getLocalVersion(): string {
 }
 
 async function fetchLatestVersion(): Promise<string> {
+  // Mendloop fork: no outbound call unless CONTEXT_MODE_UPDATE_CHECK=1.
+  if (!updateCheckEnabled()) return "unknown";
   // Use node:https instead of global fetch to avoid a Windows libuv assertion
   // (UV_HANDLE_CLOSING) caused by undici's connection-pool background threads
   // racing with process.exit() teardown on Node.js v24+.
@@ -1214,24 +1218,15 @@ async function doctor(): Promise<number> {
 }
 
 /* -------------------------------------------------------
- * Insight — hosted analytics dashboard
- * ------------------------------------------------------- */
-
-// Insight pivoted from a locally-built dashboard to the hosted product at
-// context-mode.com/insight (the landing page is the single source of truth).
-// The command now just opens that URL in the default browser.
-async function insight() {
-  const url = "https://context-mode.com/insight";
-  console.log(`\n  context-mode Insight\n  ${url}\n`);
-  // Open browser — execFile with arg array, no shell interpolation.
-  openInBrowser(url);
-}
-
-/* -------------------------------------------------------
  * Upgrade — adapter-aware hook configuration
  * ------------------------------------------------------- */
 
 async function upgrade(opts?: { platform?: string }) {
+  // Mendloop fork: upgrade rewrites Claude's hooks and settings and pulls from the network; plugin installs only.
+  if (!selfHealAllowed(getPluginRoot())) {
+    console.error("context-mode upgrade is disabled in the Mendloop fork: not a Claude Code plugin install (MENDLOOP.md).");
+    return;
+  }
   if (process.stdout.isTTY) console.clear();
 
   // Issue #542 — when the MCP ctx_upgrade handler threads through an

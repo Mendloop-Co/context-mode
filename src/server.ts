@@ -8,6 +8,7 @@ import { join, dirname, resolve, sep, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir, tmpdir, cpus, platform } from "node:os";
 import { request as httpsRequest } from "node:https";
+import { selfHealAllowed, updateCheckEnabled } from "./util/self-heal-policy.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 import { PolyglotExecutor } from "./executor.js";
@@ -778,6 +779,8 @@ const VERSION_BURST_SIZE = 3;
 const VERSION_SILENT_MS = 60 * 60 * 1000; // 1 hour
 
 async function fetchLatestVersion(): Promise<string> {
+  // Mendloop fork: no outbound call at boot unless CONTEXT_MODE_UPDATE_CHECK=1.
+  if (!updateCheckEnabled()) return "unknown";
   return new Promise((res) => {
     const req = httpsRequest(
       "https://registry.npmjs.org/context-mode/latest",
@@ -843,6 +846,8 @@ let _cacheHealDone = false;
 function healCacheMidSession(): void {
   if (_cacheHealDone) return;
   _cacheHealDone = true;
+  // Mendloop fork: only for a Claude Code plugin install; never rewrites Claude's files otherwise.
+  if (!selfHealAllowed(getPackageRoot())) return;
   try {
     // Issue #460 round-3: honor $CLAUDE_CONFIG_DIR so users who relocate
     // their CC config root don't have plugin cache healing operate against
@@ -4287,6 +4292,12 @@ server.registerTool(
     inputSchema: z.object({}),
   },
   async () => {
+    if (!selfHealAllowed(getPackageRoot())) {
+      return trackResponse("ctx_upgrade", {
+        content: [{ type: "text" as const, text: "ctx_upgrade is disabled in the Mendloop fork: it is not a Claude Code plugin install (see MENDLOOP.md)." }],
+        isError: true,
+      });
+    }
     // Issue #542 — thread MCP clientInfo into the spawned upgrade
     // process. detectPlatform() runs IN-PROCESS here (no spawn boundary)
     // so clientInfo from the MCP handshake is the highest-confidence
@@ -4806,43 +4817,7 @@ export function killProcessOnPort(
   return result;
 }
 
-// ── ctx-insight: open the hosted Insight dashboard ───────────────────────────
-// Insight pivoted from a locally-built dashboard to the hosted B2B product at
-// context-mode.com/insight (the landing page is the single source of truth).
-// The tool now simply opens that URL in the user default browser via the same
-// cross-platform helper (openBrowserSync) used elsewhere.
-const INSIGHT_URL = "https://context-mode.com/insight";
-
-server.registerTool(
-  "ctx_insight",
-  {
-    title: "Open Insight Dashboard",
-    // #846: opens a hosted dashboard URL in the browser — an external side
-    // effect (open world), not a read-only query; safe to repeat.
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    description:
-      "Opens the context-mode Insight dashboard (https://context-mode.com/insight) in your " +
-      "default browser — a dashboard launcher for the hosted analytics layer, not a Q&A engine. " +
-      "Insight surfaces per-engineer productive rate, retry waste, blocker detection, and " +
-      "role-narrowed views for CTO, EM, IC, CISO, FinOps, and DevOps. " +
-      "For natural-language queries over your indexed content, use ctx_search.",
-    inputSchema: z.object({}),
-  },
-  async () => {
-    const open = openBrowserSync(INSIGHT_URL);
-    const text = open.ok
-      ? `Opening Insight in your browser: ${INSIGHT_URL}`
-      : `Could not auto-open your browser (${open.reason}).\nOpen Insight manually: ${INSIGHT_URL}`;
-    return trackResponse("ctx_insight", {
-      content: [{ type: "text" as const, text }],
-    });
-  },
-);
+// Mendloop fork: ctx_insight (opens the vendor's hosted dashboard) is removed (MENDLOOP.md).
 
 // ─────────────────────────────────────────────────────────
 // Server startup

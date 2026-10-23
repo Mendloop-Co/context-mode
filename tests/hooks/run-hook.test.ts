@@ -31,6 +31,7 @@ function runScript(script: string, env: Record<string, string>) {
   // Tests that want to exercise CLAUDE_CONFIG_DIR pass it via `env`.
   const parentEnv = { ...process.env };
   delete parentEnv.CLAUDE_CONFIG_DIR;
+  delete parentEnv.CONTEXT_MODE_DIR; // Mendloop fork: it moves the logs (tests/mendloop-fork.test.ts covers that)
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     encoding: "utf-8",
     env: { ...parentEnv, ...env },

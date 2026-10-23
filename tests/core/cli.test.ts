@@ -3767,7 +3767,7 @@ describe("Issue #564 — doctor() flags Linux + Node < 22.5 + no Bun", () => {
     expect(start).toBeGreaterThan(-1);
     // doctor() spans ~300 lines; grab a generous window that ends before
     // the next top-level function declaration (`async function insight`).
-    const end = CLI_SRC.indexOf("async function insight", start);
+    const end = CLI_SRC.indexOf("async function upgrade", start);
     expect(end).toBeGreaterThan(start);
     return CLI_SRC.slice(start, end);
   }
@@ -3882,7 +3882,7 @@ describe("PR #620 slice 4 — doctor() surfaces persistence-tier bug class", () 
   function doctorBody(): string {
     const start = CLI_SRC.indexOf("async function doctor(");
     expect(start).toBeGreaterThan(-1);
-    const end = CLI_SRC.indexOf("async function insight", start);
+    const end = CLI_SRC.indexOf("async function upgrade", start);
     expect(end).toBeGreaterThan(start);
     return CLI_SRC.slice(start, end);
   }
