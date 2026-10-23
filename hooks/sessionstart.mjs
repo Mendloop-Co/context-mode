@@ -107,8 +107,12 @@ await runHook(async () => {
   // it is the reliably-available entry point. See
   // hooks/heal-partial-install.mjs for the full failure-mode description.
   try {
-    const { healPartialInstallFromMarketplace } = await import("./heal-partial-install.mjs");
-    healPartialInstallFromMarketplace();
+    // Mendloop fork: plugin installs only (it writes <config dir>/context-mode/heal-partial-install.log).
+    const { selfHealAllowed: _allowed } = await import("./self-heal-policy.mjs");
+    if (_allowed(join(HOOK_DIR, ".."))) {
+      const { healPartialInstallFromMarketplace } = await import("./heal-partial-install.mjs");
+      healPartialInstallFromMarketplace();
+    }
   } catch { /* best effort, never block session start */ }
 
   // Issue #710 — Layer 2: self-heal Claude Code's per-session shell snapshots.

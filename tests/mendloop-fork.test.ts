@@ -6,7 +6,7 @@
  * 4. The hosted Insight forwarder and ctx_insight are gone.
  */
 import { describe, test, expect } from "vitest";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -70,6 +70,22 @@ describe("hosted forwarder", () => {
   });
 });
 
+describe("hooks from a non-plugin install", () => {
+  test("every hook leaves the Claude config dir empty", () => {
+    const cfg = mkdtempSync(join(tmpdir(), "cm-fork-hooks-"));
+    const data = mkdtempSync(join(tmpdir(), "cm-fork-hookdata-"));
+    const input = JSON.stringify({ session_id: "s-fork", cwd: data, tool_name: "Bash", tool_input: { command: "ls" }, tool_response: "x", prompt: "hi", source: "startup" });
+    for (const hook of ["sessionstart", "pretooluse", "posttooluse", "userpromptsubmit", "stop", "precompact"]) {
+      const r = spawnSync("node", [resolve(ROOT, "hooks", `${hook}.mjs`)], {
+        input, encoding: "utf8", cwd: data,
+        env: { ...process.env, CLAUDE_CONFIG_DIR: cfg, CONTEXT_MODE_DIR: data, CLAUDE_PROJECT_DIR: data },
+      });
+      expect(r.status, hook).toBe(0);
+    }
+    expect(readdirSync(cfg)).toEqual([]);
+  }, 60000);
+});
+
 describe("start.mjs from a non-plugin install", () => {
   test("writes nothing to the Claude config dir, says so once, and exposes no ctx_insight", async () => {
     const cfg = mkdtempSync(join(tmpdir(), "cm-fork-cfg-"));
@@ -97,4 +113,11 @@ describe("start.mjs from a non-plugin install", () => {
     expect(names).toContain("ctx_execute");
     expect(names).not.toContain("ctx_insight");
   }, 30000);
+});
+
+describe("sessionstart gate", () => {
+  test("a plugin-cache path still allows the heal (the gate is not a blanket off)", async () => {
+    const { selfHealAllowed } = policy;
+    expect(selfHealAllowed("/Users/x/.claude/plugins/cache/context-mode/context-mode/1.0.169/hooks/..")).toBe(true);
+  });
 });
